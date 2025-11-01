@@ -27,3 +27,4 @@ C:\Users\Sebastian\Documents\Work\Kraken\kraken-cli\src\Kraken.Cli\obj\Debug\net
 C:\Users\Sebastian\Documents\Work\Kraken\kraken-cli\src\Kraken.Cli\obj\Debug\net9.0\Kraken.Cli.pdb
 C:\Users\Sebastian\Documents\Work\Kraken\kraken-cli\src\Kraken.Cli\obj\Debug\net9.0\Kraken.Cli.genruntimeconfig.cache
 C:\Users\Sebastian\Documents\Work\Kraken\kraken-cli\src\Kraken.Cli\obj\Debug\net9.0\ref\Kraken.Cli.dll
+C:\Users\Sebastian\Documents\Work\Kraken\kraken-cli\src\Kraken.Cli\obj\Debug\net9.0\Kraken.Cli.sourcelink.json
