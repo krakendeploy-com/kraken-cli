@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Kraken.Cli")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5a25943f1e64edf76603ae0e9a8438d5fb62519d")]
 [assembly: System.Reflection.AssemblyProductAttribute("Kraken.Cli")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Kraken.Cli")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
