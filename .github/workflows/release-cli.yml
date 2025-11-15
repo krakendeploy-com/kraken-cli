@@ -30,10 +30,14 @@ jobs:
         id: version
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+            VERSION="${{ inputs.version }}"
           else
-            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            VERSION="${{ github.ref_name }}"
           fi
+          # Strip 'v' prefix if present (e.g., v1.0.0 -> 1.0.0)
+          VERSION="${VERSION#v}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
 
       - name: Publish CLI for Linux x64
         run: |
@@ -89,7 +93,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.version.outputs.version }}
+          tag_name: ${{ github.ref_name || inputs.version }}
           name: Kraken CLI ${{ steps.version.outputs.version }}
           draft: false
           prerelease: false
