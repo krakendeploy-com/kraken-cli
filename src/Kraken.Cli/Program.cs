@@ -11,14 +11,14 @@ internal class Program
     {
         var parameters = ParseArguments(args);
 
-        if (!parameters.TryGetValue("Action", out var action))
+        if (!parameters.TryGetValue("action", out var action))
         {
-            Console.WriteLine("Missing required parameter: --Action");
+            Console.WriteLine("Missing required parameter: --action");
             return;
         }
 
-        // Common required parameters
-        var baseParams = new[] { "OrgId", "WorkspaceID", "ProjectId", "ApiKey" };
+        
+        var baseParams = new[] { "org-id", "workspace-id", "project-id", "api-key" };
 
         foreach (var param in baseParams)
             if (!parameters.ContainsKey(param))
@@ -27,62 +27,56 @@ internal class Program
                 return;
             }
 
-        var orgId = parameters["OrgId"];
-        var workspaceId = parameters["WorkspaceID"];
-        var projectId = parameters["ProjectId"];
-        var apiKey = parameters["ApiKey"];
+        var orgId = parameters["org-id"];
+        var workspaceId = parameters["workspace-id"];
+        var projectId = parameters["project-id"];
+        var apiKey = parameters["api-key"];
         
-        // Optional: Allow base URL override via parameter or environment variable
-        var baseUrl = parameters.TryGetValue("BaseUrl", out var url) 
-            ? url 
-            : Environment.GetEnvironmentVariable("KRAKEN_API_URL") ?? DefaultBaseUrl;
+        var baseUrl = parameters.GetValueOrDefault("base-url", DefaultBaseUrl);
 
         switch (action)
         {
-            case "CreateRelease":
-                if (!parameters.TryGetValue("Version", out var releaseVersion))
+            case "create-release":
+                if (!parameters.TryGetValue("version", out var releaseVersion))
                 {
-                    Console.WriteLine("Missing required parameter: --Version");
+                    Console.WriteLine("Missing required parameter: --version");
                     return;
                 }
 
-                // Support both --Packages (artifacts) and --RegistryImages
-                var hasPackages = parameters.TryGetValue("Packages", out var packagesRaw);
-                var hasRegistryImages = parameters.TryGetValue("RegistryImages", out var registryImagesRaw);
+                var hasPackages = parameters.TryGetValue("packages", out var packagesRaw);
+                var hasRegistryImages = parameters.TryGetValue("registry-images", out var registryImagesRaw);
 
                 if (!hasPackages && !hasRegistryImages)
                 {
-                    Console.WriteLine("Missing required parameter: At least one of --Packages or --RegistryImages must be provided");
+                    Console.WriteLine("Missing required parameter: At least one of --packages or --registry-images must be provided");
                     return;
                 }
 
                 var artifacts = hasPackages ? ParsePackages(packagesRaw!) : new List<ArtifactInfo>();
                 var registryImages = hasRegistryImages ? ParsePackages(registryImagesRaw!) : new List<ArtifactInfo>();
-                parameters.TryGetValue("Name", out var releaseName); // Optional
 
-                await CreateReleaseAsync(orgId, workspaceId, projectId, apiKey, releaseVersion, artifacts, registryImages, releaseName, baseUrl);
+                await CreateReleaseAsync(orgId, workspaceId, projectId, apiKey, releaseVersion, artifacts, registryImages, baseUrl);
                 break;
 
-            case "CreateDeployment":
-                // Support either ReleaseId or Version parameter
-                var hasReleaseId = parameters.TryGetValue("ReleaseId", out var releaseId);
-                var hasVersion = parameters.TryGetValue("Version", out var deployVersion);
+            case "create-deployment":
+                var hasReleaseId = parameters.TryGetValue("release-id", out var releaseId);
+                var hasVersion = parameters.TryGetValue("version", out var deployVersion);
 
                 if (!hasReleaseId && !hasVersion)
                 {
-                    Console.WriteLine("Missing required parameter: Either --ReleaseId or --Version must be provided");
+                    Console.WriteLine("Missing required parameter: Either --release-id or --version must be provided");
                     return;
                 }
 
                 if (hasReleaseId && hasVersion)
                 {
-                    Console.WriteLine("Cannot specify both --ReleaseId and --Version. Use one or the other.");
+                    Console.WriteLine("Cannot specify both --release-id and --version. Use one or the other.");
                     return;
                 }
 
-                if (!parameters.TryGetValue("EnvironmentId", out var environmentId))
+                if (!parameters.TryGetValue("environment-id", out var environmentId))
                 {
-                    Console.WriteLine("Missing required parameter: --EnvironmentId");
+                    Console.WriteLine("Missing required parameter: --environment-id");
                     return;
                 }
 
@@ -106,12 +100,37 @@ internal class Program
     {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var arg in args)
-            if (arg.StartsWith("--"))
+        for (int i = 0; i < args.Length; i++)
+        {
+            var arg = args[i];
+            if (!arg.StartsWith("--"))
+                continue;
+
+            var trimmed = arg.Substring(2);
+            string key;
+            string value;
+
+            var eqIndex = trimmed.IndexOf('=');
+            if (eqIndex >= 0)
             {
-                var split = arg.Substring(2).Split('=', 2);
-                if (split.Length == 2) result[split[0]] = split[1];
+                key = trimmed.Substring(0, eqIndex);
+                value = trimmed.Substring(eqIndex + 1);
             }
+            else
+            {
+                key = trimmed;
+                if (i + 1 < args.Length && !args[i + 1].StartsWith("--"))
+                {
+                    value = args[++i];
+                }
+                else
+                {
+                    value = "true";
+                }
+            }
+
+            result[key] = value;
+        }
 
         return result;
     }
@@ -123,11 +142,15 @@ internal class Program
 
         foreach (var entry in entries)
         {
-            var parts = entry.Split('=', 2);
-            if (parts.Length == 2)
-                artifacts.Add(new ArtifactInfo(parts[0], parts[1]));
+            var parts = entry.Split(':', 3);
+            if (parts.Length == 3)
+            {
+                artifacts.Add(new ArtifactInfo(parts[0], parts[1], parts[2]));
+            }
             else
-                Console.WriteLine($"⚠️ Invalid package entry: '{entry}'");
+            {
+                Console.WriteLine($"⚠️ Invalid package entry format. Expected 'name:version:slug-id', got: '{entry}'");
+            }
         }
 
         return artifacts;
@@ -154,9 +177,8 @@ internal class Program
     }
 
     private static async Task CreateReleaseAsync(string orgId, string workspaceId, string projectId, string apiKey,
-        string version, List<ArtifactInfo> artifacts, List<ArtifactInfo> registryImages, string? releaseName, string baseUrl)
+        string version, List<ArtifactInfo> artifacts, List<ArtifactInfo> registryImages, string baseUrl)
     {
-        // Validation
         if (string.IsNullOrWhiteSpace(version))
         {
             Console.WriteLine("❌ Version cannot be empty.");
@@ -177,16 +199,15 @@ internal class Program
         Console.WriteLine("Creating release...");
         if (artifacts != null && artifacts.Count > 0)
         {
-            Console.WriteLine($"  📦 Artifacts: {string.Join(", ", artifacts.Select(a => $"{a.Name}={a.Version}"))}");
+            Console.WriteLine($"  📦 Artifacts: {string.Join(", ", artifacts.Select(a => $"{a.Name}:{a.Version}:{a.ArtifactSourceSlug}"))}");
         }
         if (registryImages != null && registryImages.Count > 0)
         {
-            Console.WriteLine($"  🐳 Registry Images: {string.Join(", ", registryImages.Select(r => $"{r.Name}={r.Version}"))}");
+            Console.WriteLine($"  🐳 Registry Images: {string.Join(", ", registryImages.Select(r => $"{r.Name}:{r.Version}:{r.ArtifactSourceSlug}"))}");
         }
 
         var input = new CreateReleaseInput
         {
-            Name = releaseName,
             Version = version,
             Artifacts = artifacts.Count > 0 ? artifacts : null,
             RegistryImages = registryImages.Count > 0 ? registryImages : null
@@ -217,7 +238,6 @@ internal class Program
     private static async Task CreateDeploymentByReleaseIdAsync(string orgId, string workspaceId, string projectId, string apiKey,
         string environmentId, string releaseId, string baseUrl)
     {
-        // Validation
         if (string.IsNullOrWhiteSpace(environmentId))
         {
             Console.WriteLine("❌ EnvironmentId cannot be empty.");
@@ -262,7 +282,6 @@ internal class Program
     private static async Task CreateDeploymentByVersionAsync(string orgId, string workspaceId, string projectId, string apiKey,
         string environmentId, string version, string baseUrl)
     {
-        // Validation
         if (string.IsNullOrWhiteSpace(environmentId))
         {
             Console.WriteLine("❌ EnvironmentId cannot be empty.");
@@ -302,15 +321,5 @@ internal class Program
         {
             Console.WriteLine($"❌ Exception occurred: {ex.Message}");
         }
-    }
-
-    private static void UploadPackage(string orgId, string workspaceId, string projectId, string apiKey,
-        string filePath, string version)
-    {
-        Console.WriteLine("Uploading package...");
-        Console.WriteLine($"File: {filePath}");
-        Console.WriteLine($"Version: {version}");
-
-        // TODO: Implement actual upload logic
     }
 }

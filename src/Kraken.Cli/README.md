@@ -11,9 +11,9 @@ Command-line interface for interacting with the Kraken API using API key authent
 
 The CLI can be configured with the following environment variables:
 
-- `KRAKEN_API_URL`: Base URL for the Kraken API (defaults to `http://localhost:5000`)
+- `KRAKEN_API_URL`: Base URL for the Kraken API (defaults to `https://api.krakendeploy.com`)
 
-Alternatively, you can pass the `--BaseUrl` parameter to override the base URL.
+Alternatively, you can pass the `--base-url` parameter to override the base URL.
 
 ## Usage
 
@@ -21,114 +21,104 @@ Alternatively, you can pass the `--BaseUrl` parameter to override the base URL.
 
 All commands require the following parameters:
 
-- `--Action`: The action to perform (CreateRelease, CreateDeployment, UploadPackage)
-- `--OrgId`: Organization ID or slug
-- `--WorkspaceID`: Workspace ID or slug
-- `--ProjectId`: Project ID or slug
-- `--ApiKey`: Your Kraken API key
+- `--action`: The action to perform (`create-release`, `create-deployment`)
+- `--org-id`: Organization ID or slug
+- `--workspace-id`: Workspace ID or slug
+- `--project-id`: Project ID or slug
+- `--api-key`: Your Kraken API key (must start with `krk_`)
 
 ### Create Release
 
 Creates a new release with specified artifacts and/or registry images.
 
+**Important:** Artifacts and registry images must be specified in the format `name:version:artifact-source-slug`, where:
+- `name`: The artifact/image name
+- `version`: The version string
+- `artifact-source-slug`: The slug identifier for the artifact source (e.g., `kraken-git`, `docker-hub`)
+
 #### Example with Artifacts
 
 ```bash
-dotnet run --project Kraken.Cli.csproj \
-  --Action=CreateRelease \
-  --OrgId=my-org \
-  --WorkspaceID=my-workspace \
-  --ProjectId=my-project \
-  --ApiKey=krk_your_api_key_here \
-  --Version=1.0.0 \
-  --Packages="artifact1=1.0.0;artifact2=2.0.0" \
-  --Name="Release 1.0.0"
+dotnet run --project Kraken.Cli.csproj -- \
+  --action create-release \
+  --org-id my-org \
+  --workspace-id my-workspace \
+  --project-id my-project \
+  --api-key krk_your_api_key_here \
+  --version 1.0.0 \
+  --packages "artifact1:1.0.0:kraken-git;artifact2:2.0.0:azure-artifacts"
 ```
 
 #### Example with Registry Images
 
 ```bash
-dotnet run --project Kraken.Cli.csproj \
-  --Action=CreateRelease \
-  --OrgId=my-org \
-  --WorkspaceID=my-workspace \
-  --ProjectId=my-project \
-  --ApiKey=krk_your_api_key_here \
-  --Version=1.0.0 \
-  --RegistryImages="myapp=1.0.0;nginx=latest" \
-  --Name="Release 1.0.0"
+dotnet run --project Kraken.Cli.csproj -- \
+  --action create-release \
+  --org-id my-org \
+  --workspace-id my-workspace \
+  --project-id my-project \
+  --api-key krk_your_api_key_here \
+  --version 1.0.0 \
+  --registry-images "myapp:1.0.0:docker-hub;nginx:latest:ghcr"
 ```
 
 #### Example with Both
 
 ```bash
-dotnet run --project Kraken.Cli.csproj \
-  --Action=CreateRelease \
-  --OrgId=my-org \
-  --WorkspaceID=my-workspace \
-  --ProjectId=my-project \
-  --ApiKey=krk_your_api_key_here \
-  --Version=1.0.0 \
-  --Packages="artifact1=1.0.0" \
-  --RegistryImages="myapp=1.0.0;nginx=latest" \
-  --Name="Release 1.0.0"
+dotnet run --project Kraken.Cli.csproj -- \
+  --action create-release \
+  --org-id my-org \
+  --workspace-id my-workspace \
+  --project-id my-project \
+  --api-key krk_your_api_key_here \
+  --version 1.0.0 \
+  --packages "artifact1:1.0.0:kraken-git" \
+  --registry-images "myapp:1.0.0:docker-hub;nginx:latest:ghcr"
 ```
 
 Parameters:
-- `--Version`: Release version (required)
-- `--Packages`: Semicolon-separated list of package_name=version pairs (required if --RegistryImages is not provided)
-- `--RegistryImages`: Semicolon-separated list of image_name=version pairs (required if --Packages is not provided)
-- `--Name`: Release name (optional)
+- `--version`: Release version (required)
+- `--packages`: Semicolon-separated list of `name:version:slug` entries (required if `--registry-images` is not provided)
+- `--registry-images`: Semicolon-separated list of `name:version:slug` entries (required if `--packages` is not provided)
 
-**Note:** You must specify at least one of `--Packages` or `--RegistryImages`, but you can specify both.
+**Note:** You must specify at least one of `--packages` or `--registry-images`, but you can specify both.
 
 ### Create Deployment
 
-Creates a new deployment for a specific environment and release. You can specify the release using either a ReleaseId or a Version string.
+Creates a new deployment for a specific environment and release. You can specify the release using either a release ID or a version string.
 
 #### Option 1: Using Release ID
 
 ```bash
-dotnet run --project Kraken.Cli.csproj \
-  --Action=CreateDeployment \
-  --OrgId=my-org \
-  --WorkspaceID=my-workspace \
-  --ProjectId=my-project \
-  --ApiKey=krk_your_api_key_here \
-  --EnvironmentId=my-environment \
-  --ReleaseId=my-release-id
+dotnet run --project Kraken.Cli.csproj -- \
+  --action create-deployment \
+  --org-id my-org \
+  --workspace-id my-workspace \
+  --project-id my-project \
+  --api-key krk_your_api_key_here \
+  --environment-id my-environment \
+  --release-id my-release-id
 ```
 
 #### Option 2: Using Release Version
 
 ```bash
-dotnet run --project Kraken.Cli.csproj \
-  --Action=CreateDeployment \
-  --OrgId=my-org \
-  --WorkspaceID=my-workspace \
-  --ProjectId=my-project \
-  --ApiKey=krk_your_api_key_here \
-  --EnvironmentId=my-environment \
-  --Version=1.0.0
+dotnet run --project Kraken.Cli.csproj -- \
+  --action create-deployment \
+  --org-id my-org \
+  --workspace-id my-workspace \
+  --project-id my-project \
+  --api-key krk_your_api_key_here \
+  --environment-id my-environment \
+  --version 1.0.0
 ```
 
 Parameters:
-- `--EnvironmentId`: Environment ID or slug (required)
+- `--environment-id`: Environment ID or slug (required)
+- `--release-id`: Specific release ID (required if `--version` is not provided)
+- `--version`: Release version string (required if `--release-id` is not provided)
 
-### Upload Package
-
-(Not yet implemented)
-
-```bash
-dotnet run --project Kraken.Cli.csproj \
-  --Action=UploadPackage \
-  --OrgId=my-org \
-  --WorkspaceID=my-workspace \
-  --ProjectId=my-project \
-  --ApiKey=krk_your_api_key_here \
-  --File=/path/to/package.zip \
-  --Version=1.0.0
-```
+**Note:** You must specify either `--release-id` or `--version`, but not both.
 
 ## Examples
 
@@ -136,26 +126,53 @@ dotnet run --project Kraken.Cli.csproj \
 
 ```bash
 # Via parameter
-dotnet run --project Kraken.Cli.csproj \
-  --Action=CreateRelease \
-  --BaseUrl=https://api.kraken.example.com \
-  --OrgId=my-org \
-  --WorkspaceID=my-workspace \
-  --ProjectId=my-project \
-  --ApiKey=krk_your_api_key_here \
-  --Version=1.0.0 \
-  --Packages="artifact1=1.0.0"
+dotnet run --project Kraken.Cli.csproj -- \
+  --action create-release \
+  --base-url https://api.kraken.example.com \
+  --org-id my-org \
+  --workspace-id my-workspace \
+  --project-id my-project \
+  --api-key krk_your_api_key_here \
+  --version 1.0.0 \
+  --packages "artifact1:1.0.0:kraken-git"
 
-# Via environment variable
-export KRAKEN_API_URL=https://api.kraken.example.com
-dotnet run --project Kraken.Cli.csproj \
-  --Action=CreateRelease \
-  --OrgId=my-org \
-  --WorkspaceID=my-workspace \
-  --ProjectId=my-project \
-  --ApiKey=krk_your_api_key_here \
-  --Version=1.0.0 \
-  --Packages="artifact1=1.0.0"
+# Via environment variable (Windows CMD)
+set KRAKEN_API_URL=https://api.kraken.example.com
+dotnet run --project Kraken.Cli.csproj -- \
+  --action create-release \
+  --org-id my-org \
+  --workspace-id my-workspace \
+  --project-id my-project \
+  --api-key krk_your_api_key_here \
+  --version 1.0.0 \
+  --packages "artifact1:1.0.0:kraken-git"
+
+# Via environment variable (PowerShell)
+$env:KRAKEN_API_URL="https://api.kraken.example.com"
+dotnet run --project Kraken.Cli.csproj -- \
+  --action create-release \
+  --org-id my-org \
+  --workspace-id my-workspace \
+  --project-id my-project \
+  --api-key krk_your_api_key_here \
+  --version 1.0.0 \
+  --packages "artifact1:1.0.0:kraken-git"
+```
+
+### Multiple Artifacts
+
+You can specify multiple artifacts or registry images by separating them with semicolons:
+
+```bash
+dotnet run --project Kraken.Cli.csproj -- \
+  --action create-release \
+  --org-id my-org \
+  --workspace-id my-workspace \
+  --project-id my-project \
+  --api-key krk_your_api_key_here \
+  --version 1.0.0 \
+  --packages "api:1.0.0:kraken-git;web:1.0.0:kraken-git;worker:1.0.0:azure-artifacts" \
+  --registry-images "myapp:1.0.0:docker-hub;nginx:1.21:docker-hub"
 ```
 
 ## API Endpoints
