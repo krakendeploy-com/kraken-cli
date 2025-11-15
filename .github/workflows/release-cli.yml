@@ -1,0 +1,104 @@
+name: Release Kraken CLI
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  build-and-release:
+    name: Build and Release CLI
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish CLI for Linux x64
+        run: |
+          dotnet publish src/Kraken.Cli/Kraken.Cli.csproj \
+            -c Release \
+            -r linux-x64 \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:PublishTrimmed=false \
+            -p:Version=${{ steps.version.outputs.version }} \
+            -o ./publish/linux-x64
+
+      - name: Publish CLI for Windows x64
+        run: |
+          dotnet publish src/Kraken.Cli/Kraken.Cli.csproj \
+            -c Release \
+            -r win-x64 \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:PublishTrimmed=false \
+            -p:Version=${{ steps.version.outputs.version }} \
+            -o ./publish/win-x64
+
+      - name: Publish CLI for macOS x64
+        run: |
+          dotnet publish src/Kraken.Cli/Kraken.Cli.csproj \
+            -c Release \
+            -r osx-x64 \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:PublishTrimmed=false \
+            -p:Version=${{ steps.version.outputs.version }} \
+            -o ./publish/osx-x64
+
+      - name: Publish CLI for macOS ARM64
+        run: |
+          dotnet publish src/Kraken.Cli/Kraken.Cli.csproj \
+            -c Release \
+            -r osx-arm64 \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:PublishTrimmed=false \
+            -p:Version=${{ steps.version.outputs.version }} \
+            -o ./publish/osx-arm64
+
+      - name: Rename executables
+        run: |
+          mv ./publish/linux-x64/Kraken.Cli ./publish/kraken-cli-linux-x64
+          mv ./publish/win-x64/Kraken.Cli.exe ./publish/kraken-cli-win-x64.exe
+          mv ./publish/osx-x64/Kraken.Cli ./publish/kraken-cli-osx-x64
+          mv ./publish/osx-arm64/Kraken.Cli ./publish/kraken-cli-osx-arm64
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Kraken CLI ${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            ./publish/kraken-cli-linux-x64
+            ./publish/kraken-cli-win-x64.exe
+            ./publish/kraken-cli-osx-x64
+            ./publish/kraken-cli-osx-arm64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
