@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Json;
+﻿using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using Kraken.Cli.Models;
 
 namespace Kraken.Cli;
@@ -17,7 +18,7 @@ internal class Program
             return;
         }
 
-        
+
         var baseParams = new[] { "org-id", "workspace-id", "project-id", "api-key" };
 
         foreach (var param in baseParams)
@@ -31,7 +32,7 @@ internal class Program
         var workspaceId = parameters["workspace-id"];
         var projectId = parameters["project-id"];
         var apiKey = parameters["api-key"];
-        
+
         var baseUrl = parameters.GetValueOrDefault("base-url", DefaultBaseUrl);
 
         switch (action)
@@ -48,14 +49,16 @@ internal class Program
 
                 if (!hasPackages && !hasRegistryImages)
                 {
-                    Console.WriteLine("Missing required parameter: At least one of --packages or --registry-images must be provided");
+                    Console.WriteLine(
+                        "Missing required parameter: At least one of --packages or --registry-images must be provided");
                     return;
                 }
 
                 var artifacts = hasPackages ? ParsePackages(packagesRaw!) : new List<ArtifactInfo>();
                 var registryImages = hasRegistryImages ? ParsePackages(registryImagesRaw!) : new List<ArtifactInfo>();
 
-                await CreateReleaseAsync(orgId, workspaceId, projectId, apiKey, releaseVersion, artifacts, registryImages, baseUrl);
+                await CreateReleaseAsync(orgId, workspaceId, projectId, apiKey, releaseVersion, artifacts,
+                    registryImages, baseUrl);
                 break;
 
             case "create-deployment":
@@ -81,13 +84,11 @@ internal class Program
                 }
 
                 if (hasReleaseId)
-                {
-                    await CreateDeploymentByReleaseIdAsync(orgId, workspaceId, projectId, apiKey, environmentId, releaseId!, baseUrl);
-                }
+                    await CreateDeploymentByReleaseIdAsync(orgId, workspaceId, projectId, apiKey, environmentId,
+                        releaseId!, baseUrl);
                 else
-                {
-                    await CreateDeploymentByVersionAsync(orgId, workspaceId, projectId, apiKey, environmentId, deployVersion!, baseUrl);
-                }
+                    await CreateDeploymentByVersionAsync(orgId, workspaceId, projectId, apiKey, environmentId,
+                        deployVersion!, baseUrl);
                 break;
 
             default:
@@ -100,7 +101,7 @@ internal class Program
     {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        for (int i = 0; i < args.Length; i++)
+        for (var i = 0; i < args.Length; i++)
         {
             var arg = args[i];
             if (!arg.StartsWith("--"))
@@ -120,13 +121,9 @@ internal class Program
             {
                 key = trimmed;
                 if (i + 1 < args.Length && !args[i + 1].StartsWith("--"))
-                {
                     value = args[++i];
-                }
                 else
-                {
                     value = "true";
-                }
             }
 
             result[key] = value;
@@ -144,13 +141,9 @@ internal class Program
         {
             var parts = entry.Split(':', 3);
             if (parts.Length == 3)
-            {
                 artifacts.Add(new ArtifactInfo(parts[0], parts[1], parts[2]));
-            }
             else
-            {
                 Console.WriteLine($"⚠️ Invalid package entry format. Expected 'name:version:slug-id', got: '{entry}'");
-            }
         }
 
         return artifacts;
@@ -163,6 +156,7 @@ internal class Program
             Console.WriteLine("❌ Invalid API key format. API key must start with 'krk_'.");
             return false;
         }
+
         return true;
     }
 
@@ -172,7 +166,7 @@ internal class Program
         {
             BaseAddress = new Uri(baseUrl ?? DefaultBaseUrl)
         };
-        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         return client;
     }
 
@@ -191,20 +185,15 @@ internal class Program
             return;
         }
 
-        if (!ValidateApiKey(apiKey))
-        {
-            return;
-        }
+        if (!ValidateApiKey(apiKey)) return;
 
         Console.WriteLine("Creating release...");
         if (artifacts != null && artifacts.Count > 0)
-        {
-            Console.WriteLine($"  📦 Artifacts: {string.Join(", ", artifacts.Select(a => $"{a.Name}:{a.Version}:{a.ArtifactSourceSlug}"))}");
-        }
+            Console.WriteLine(
+                $"  📦 Artifacts: {string.Join(", ", artifacts.Select(a => $"{a.Name}:{a.Version}:{a.ArtifactSourceSlug}"))}");
         if (registryImages != null && registryImages.Count > 0)
-        {
-            Console.WriteLine($"  🐳 Registry Images: {string.Join(", ", registryImages.Select(r => $"{r.Name}:{r.Version}:{r.ArtifactSourceSlug}"))}");
-        }
+            Console.WriteLine(
+                $"  🐳 Registry Images: {string.Join(", ", registryImages.Select(r => $"{r.Name}:{r.Version}:{r.ArtifactSourceSlug}"))}");
 
         var input = new CreateReleaseInput
         {
@@ -235,7 +224,8 @@ internal class Program
         }
     }
 
-    private static async Task CreateDeploymentByReleaseIdAsync(string orgId, string workspaceId, string projectId, string apiKey,
+    private static async Task CreateDeploymentByReleaseIdAsync(string orgId, string workspaceId, string projectId,
+        string apiKey,
         string environmentId, string releaseId, string baseUrl)
     {
         if (string.IsNullOrWhiteSpace(environmentId))
@@ -250,15 +240,13 @@ internal class Program
             return;
         }
 
-        if (!ValidateApiKey(apiKey))
-        {
-            return;
-        }
+        if (!ValidateApiKey(apiKey)) return;
 
         Console.WriteLine($"Creating deployment with Release ID: {releaseId}...");
 
         var client = CreateHttpClient(apiKey, baseUrl);
-        var url = $"/organization/{orgId}/workspaces/{workspaceId}/projects/{projectId}/environments/{environmentId}/deployments/releases/{releaseId}/create";
+        var url =
+            $"/organization/{orgId}/workspaces/{workspaceId}/projects/{projectId}/environments/{environmentId}/deployments/releases/{releaseId}/create";
 
         try
         {
@@ -279,7 +267,8 @@ internal class Program
         }
     }
 
-    private static async Task CreateDeploymentByVersionAsync(string orgId, string workspaceId, string projectId, string apiKey,
+    private static async Task CreateDeploymentByVersionAsync(string orgId, string workspaceId, string projectId,
+        string apiKey,
         string environmentId, string version, string baseUrl)
     {
         if (string.IsNullOrWhiteSpace(environmentId))
@@ -294,15 +283,13 @@ internal class Program
             return;
         }
 
-        if (!ValidateApiKey(apiKey))
-        {
-            return;
-        }
+        if (!ValidateApiKey(apiKey)) return;
 
         Console.WriteLine($"Creating deployment with Release Version: {version}...");
 
         var client = CreateHttpClient(apiKey, baseUrl);
-        var url = $"/organization/{orgId}/workspaces/{workspaceId}/projects/{projectId}/environments/{environmentId}/deployments/version/{version}/create";
+        var url =
+            $"/organization/{orgId}/workspaces/{workspaceId}/projects/{projectId}/environments/{environmentId}/deployments/version/{version}/create";
 
         try
         {

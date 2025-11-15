@@ -32,6 +32,7 @@ All commands require the following parameters:
 Creates a new release with specified artifacts and/or registry images.
 
 **Important:** Artifacts and registry images must be specified in the format `name:version:artifact-source-slug`, where:
+
 - `name`: The artifact/image name
 - `version`: The version string
 - `artifact-source-slug`: The slug identifier for the artifact source (e.g., `kraken-git`, `docker-hub`)
@@ -77,15 +78,19 @@ dotnet run --project Kraken.Cli.csproj -- \
 ```
 
 Parameters:
+
 - `--version`: Release version (required)
-- `--packages`: Semicolon-separated list of `name:version:slug` entries (required if `--registry-images` is not provided)
-- `--registry-images`: Semicolon-separated list of `name:version:slug` entries (required if `--packages` is not provided)
+- `--packages`: Semicolon-separated list of `name:version:slug` entries (required if `--registry-images` is not
+  provided)
+- `--registry-images`: Semicolon-separated list of `name:version:slug` entries (required if `--packages` is not
+  provided)
 
 **Note:** You must specify at least one of `--packages` or `--registry-images`, but you can specify both.
 
 ### Create Deployment
 
-Creates a new deployment for a specific environment and release. You can specify the release using either a release ID or a version string.
+Creates a new deployment for a specific environment and release. You can specify the release using either a release ID
+or a version string.
 
 #### Option 1: Using Release ID
 
@@ -114,6 +119,7 @@ dotnet run --project Kraken.Cli.csproj -- \
 ```
 
 Parameters:
+
 - `--environment-id`: Environment ID or slug (required)
 - `--release-id`: Specific release ID (required if `--version` is not provided)
 - `--version`: Release version string (required if `--release-id` is not provided)
@@ -180,8 +186,12 @@ dotnet run --project Kraken.Cli.csproj -- \
 The CLI uses the following API endpoints (all require API key authentication):
 
 - `POST /organization/{organizationId}/workspaces/{workspaceId}/projects/{projectId}/releases/create` - Create release
-- `POST /organization/{organizationId}/workspaces/{workspaceId}/projects/{projectId}/environments/{environmentId}/deployments/releases/{releaseId}/create` - Create deployment by release ID
-- `POST /organization/{organizationId}/workspaces/{workspaceId}/projects/{projectId}/environments/{environmentId}/deployments/version/{version}/create` - Create deployment by release version
+-
+`POST /organization/{organizationId}/workspaces/{workspaceId}/projects/{projectId}/environments/{environmentId}/deployments/releases/{releaseId}/create` -
+Create deployment by release ID
+-
+`POST /organization/{organizationId}/workspaces/{workspaceId}/projects/{projectId}/environments/{environmentId}/deployments/version/{version}/create` -
+Create deployment by release version
 
 ## Error Handling
 
