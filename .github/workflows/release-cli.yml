@@ -1,20 +1,110 @@
-name: Release Kraken CLI
+name: Publish and Release Kraken CLI
 
 on:
   push:
-    tags:
-      - 'v*'
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Release version (e.g., v1.0.0)'
-        required: true
-        type: string
+    branches: [ master ]
+    paths:
+      - 'src/**'
+      - '.github/workflows/release-cli.yml'
+  workflow_dispatch: {}
 
 jobs:
-  build-and-release:
+  publish:
+    name: Publish CLI Artifacts
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Determine version
+        id: version
+        run: |
+          VERSION="1.0.${{ github.run_number }}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Build version: ${VERSION}"
+
+      - name: Publish CLI for Linux x64
+        run: |
+          dotnet publish src/Kraken.Cli/Kraken.Cli.csproj \
+            -c Release \
+            -r linux-x64 \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:PublishTrimmed=false \
+            -p:Version=${{ steps.version.outputs.version }} \
+            -o ./publish/linux-x64
+
+      - name: Publish CLI for Windows x64
+        run: |
+          dotnet publish src/Kraken.Cli/Kraken.Cli.csproj \
+            -c Release \
+            -r win-x64 \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:PublishTrimmed=false \
+            -p:Version=${{ steps.version.outputs.version }} \
+            -o ./publish/win-x64
+
+      - name: Publish CLI for macOS x64
+        run: |
+          dotnet publish src/Kraken.Cli/Kraken.Cli.csproj \
+            -c Release \
+            -r osx-x64 \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:PublishTrimmed=false \
+            -p:Version=${{ steps.version.outputs.version }} \
+            -o ./publish/osx-x64
+
+      - name: Publish CLI for macOS ARM64
+        run: |
+          dotnet publish src/Kraken.Cli/Kraken.Cli.csproj \
+            -c Release \
+            -r osx-arm64 \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:PublishTrimmed=false \
+            -p:Version=${{ steps.version.outputs.version }} \
+            -o ./publish/osx-arm64
+
+      - name: Upload Linux x64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kraken-cli-linux-x64
+          path: ./publish/linux-x64/Kraken.Cli
+          retention-days: 90
+
+      - name: Upload Windows x64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kraken-cli-win-x64
+          path: ./publish/win-x64/Kraken.Cli.exe
+          retention-days: 90
+
+      - name: Upload macOS x64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kraken-cli-osx-x64
+          path: ./publish/osx-x64/Kraken.Cli
+          retention-days: 90
+
+      - name: Upload macOS ARM64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kraken-cli-osx-arm64
+          path: ./publish/osx-arm64/Kraken.Cli
+          retention-days: 90
+
+  release:
     name: Build and Release CLI
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
     steps:
@@ -29,11 +119,12 @@ jobs:
       - name: Determine version
         id: version
         run: |
-          # Use SemVer 1.0.buildnumber format
           VERSION="1.0.${{ github.run_number }}"
           TAG="${VERSION}"
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Release version: ${VERSION}"
+          echo "Release tag: ${TAG}"
 
       - name: Publish CLI for Linux x64
         run: |
