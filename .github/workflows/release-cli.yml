@@ -78,7 +78,6 @@ jobs:
             -o ./publish/osx-arm64
 
       - name: Upload Linux x64 artifact
-        if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
         with:
           name: kraken-cli-linux-x64
@@ -86,7 +85,6 @@ jobs:
           retention-days: 90
 
       - name: Upload Windows x64 artifact
-        if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
         with:
           name: kraken-cli-win-x64
@@ -94,7 +92,6 @@ jobs:
           retention-days: 90
 
       - name: Upload macOS x64 artifact
-        if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
         with:
           name: kraken-cli-osx-x64
@@ -102,7 +99,6 @@ jobs:
           retention-days: 90
 
       - name: Upload macOS ARM64 artifact
-        if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
         with:
           name: kraken-cli-osx-arm64
@@ -110,7 +106,6 @@ jobs:
           retention-days: 90
 
       - name: Rename executables for release
-        if: github.event_name == 'workflow_dispatch'
         run: |
           mv ./publish/linux-x64/Kraken.Cli ./publish/kraken-cli-linux-x64
           mv ./publish/win-x64/Kraken.Cli.exe ./publish/kraken-cli-win-x64.exe
