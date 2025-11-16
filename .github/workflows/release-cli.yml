@@ -12,7 +12,6 @@ jobs:
   publish:
     name: Publish CLI Artifacts
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -103,8 +102,7 @@ jobs:
 
   release:
     name: Build and Release CLI
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest    
     permissions:
       contents: write
     steps:
