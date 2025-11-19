@@ -187,9 +187,12 @@ The CLI uses the following API endpoints (all require API key authentication):
 
 - `POST /organization/{organizationId}/workspaces/{workspaceId}/projects/{projectId}/releases/create` - Create release
 -
+
 `POST /organization/{organizationId}/workspaces/{workspaceId}/projects/{projectId}/environments/{environmentId}/deployments/releases/{releaseId}/create` -
 Create deployment by release ID
+
 -
+
 `POST /organization/{organizationId}/workspaces/{workspaceId}/projects/{projectId}/environments/{environmentId}/deployments/version/{version}/create` -
 Create deployment by release version
 
