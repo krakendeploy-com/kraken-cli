@@ -20,13 +20,11 @@ internal class Program
 
         var requiredParams = new[] { "org-id", "workspace-id", "api-key" };
         foreach (var param in requiredParams)
-        {
             if (!parameters.ContainsKey(param))
             {
                 Console.WriteLine($"Missing required parameter: --{param}");
                 return;
             }
-        }
 
         if ((action == "create-release" || action == "create-deployment") && !parameters.ContainsKey("project-id"))
         {
@@ -124,8 +122,6 @@ internal class Program
                 Console.WriteLine($"Unknown action: {action}");
                 return;
         }
-        
-        return;
     }
 
     private static Dictionary<string, string> ParseArguments(string[] args)
@@ -375,14 +371,14 @@ internal class Program
 
         var client = CreateHttpClient(apiKey, baseUrl);
         client.Timeout = TimeSpan.FromMinutes(30); // Increase timeout for large files
-        
+
         var url = $"/organization/{orgId}/workspaces/{workspaceId}/artifact/internal-feed";
 
         try
         {
             // Read file into memory for large files to avoid stream disposal issues
             var fileBytes = await File.ReadAllBytesAsync(filePath);
-            
+
             using var form = new MultipartFormDataContent();
             form.Add(new StringContent(name), "name");
             form.Add(new StringContent(version), "version");
@@ -393,23 +389,17 @@ internal class Program
             {
                 Console.WriteLine("✅ Artifact uploaded successfully.");
                 var responseContent = await response.Content.ReadAsStringAsync();
-                if (!string.IsNullOrWhiteSpace(responseContent))
-                {
-                    Console.WriteLine($"Response: {responseContent}");
-                }
-                return;
+                if (!string.IsNullOrWhiteSpace(responseContent)) Console.WriteLine($"Response: {responseContent}");
             }
             else
             {
                 Console.WriteLine($"❌ Failed to upload artifact: {response.StatusCode}");
                 Console.WriteLine(await response.Content.ReadAsStringAsync());
-                return;
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Exception occurred: {ex.Message}");
-            return;
         }
     }
 }

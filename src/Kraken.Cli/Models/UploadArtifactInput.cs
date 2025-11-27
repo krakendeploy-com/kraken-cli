@@ -6,4 +6,3 @@ public class UploadArtifactInput
     public string? Version { get; set; }
     public string? FilePath { get; set; }
 }
-
