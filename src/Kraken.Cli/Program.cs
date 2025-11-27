@@ -8,14 +8,14 @@ internal class Program
 {
     private const string DefaultBaseUrl = "https://api.krakendeploy.com";
 
-    private static async Task<int> Main(string[] args)
+    private static async Task Main(string[] args)
     {
         var parameters = ParseArguments(args);
 
         if (!parameters.TryGetValue("action", out var action))
         {
             Console.WriteLine("Missing required parameter: --action");
-            return 1;
+            return;
         }
 
         var requiredParams = new[] { "org-id", "workspace-id", "api-key" };
@@ -24,14 +24,14 @@ internal class Program
             if (!parameters.ContainsKey(param))
             {
                 Console.WriteLine($"Missing required parameter: --{param}");
-                return 1;
+                return;
             }
         }
 
         if ((action == "create-release" || action == "create-deployment") && !parameters.ContainsKey("project-id"))
         {
             Console.WriteLine("Missing required parameter: --project-id");
-            return 1;
+            return;
         }
 
         var orgId = parameters["org-id"];
@@ -47,7 +47,7 @@ internal class Program
                 if (!parameters.TryGetValue("version", out var releaseVersion))
                 {
                     Console.WriteLine("Missing required parameter: --version");
-                    return 1;
+                    return;
                 }
 
                 var hasPackages = parameters.TryGetValue("packages", out var packagesRaw);
@@ -57,7 +57,7 @@ internal class Program
                 {
                     Console.WriteLine(
                         "Missing required parameter: At least one of --packages or --registry-images must be provided");
-                    return 1;
+                    return;
                 }
 
                 var artifacts = hasPackages ? ParsePackages(packagesRaw!) : new List<ArtifactInfo>();
@@ -74,19 +74,19 @@ internal class Program
                 if (!hasReleaseId && !hasVersion)
                 {
                     Console.WriteLine("Missing required parameter: Either --release-id or --version must be provided");
-                    return 1;
+                    return;
                 }
 
                 if (hasReleaseId && hasVersion)
                 {
                     Console.WriteLine("Cannot specify both --release-id and --version. Use one or the other.");
-                    return 1;
+                    return;
                 }
 
                 if (!parameters.TryGetValue("environment-id", out var environmentId))
                 {
                     Console.WriteLine("Missing required parameter: --environment-id");
-                    return 1;
+                    return;
                 }
 
                 if (hasReleaseId)
@@ -101,30 +101,31 @@ internal class Program
                 if (!parameters.TryGetValue("name", out var artifactName))
                 {
                     Console.WriteLine("Missing required parameter: --name");
-                    return 1;
+                    return;
                 }
 
                 if (!parameters.TryGetValue("version", out var artifactVersion))
                 {
                     Console.WriteLine("Missing required parameter: --version");
-                    return 1;
+                    return;
                 }
 
                 if (!parameters.TryGetValue("file", out var filePath))
                 {
                     Console.WriteLine("Missing required parameter: --file");
-                    return 1;
+                    return;
                 }
 
-                return await UploadArtifactAsync(orgId, workspaceId, apiKey, artifactName, artifactVersion, filePath,
+                await UploadArtifactAsync(orgId, workspaceId, apiKey, artifactName, artifactVersion, filePath,
                     baseUrl);
+                return;
 
             default:
                 Console.WriteLine($"Unknown action: {action}");
-                return 1;
+                return;
         }
         
-        return 0;
+        return;
     }
 
     private static Dictionary<string, string> ParseArguments(string[] args)
@@ -340,34 +341,34 @@ internal class Program
         }
     }
 
-    private static async Task<int> UploadArtifactAsync(string orgId, string workspaceId, string apiKey,
+    private static async Task UploadArtifactAsync(string orgId, string workspaceId, string apiKey,
         string name, string version, string filePath, string baseUrl)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
             Console.WriteLine("❌ Artifact name cannot be empty.");
-            return 1;
+            return;
         }
 
         if (string.IsNullOrWhiteSpace(version))
         {
             Console.WriteLine("❌ Artifact version cannot be empty.");
-            return 1;
+            return;
         }
 
         if (string.IsNullOrWhiteSpace(filePath))
         {
             Console.WriteLine("❌ File path cannot be empty.");
-            return 1;
+            return;
         }
 
         if (!File.Exists(filePath))
         {
             Console.WriteLine($"❌ File not found: {filePath}");
-            return 1;
+            return;
         }
 
-        if (!ValidateApiKey(apiKey)) return 1;
+        if (!ValidateApiKey(apiKey)) return;
 
         Console.WriteLine($"Uploading artifact: {name}:{version}");
         Console.WriteLine($"  📄 File: {filePath}");
@@ -396,19 +397,19 @@ internal class Program
                 {
                     Console.WriteLine($"Response: {responseContent}");
                 }
-                return 0;
+                return;
             }
             else
             {
                 Console.WriteLine($"❌ Failed to upload artifact: {response.StatusCode}");
                 Console.WriteLine(await response.Content.ReadAsStringAsync());
-                return 1;
+                return;
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Exception occurred: {ex.Message}");
-            return 1;
+            return;
         }
     }
 }
