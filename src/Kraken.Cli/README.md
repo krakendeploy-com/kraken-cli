@@ -21,10 +21,10 @@ Alternatively, you can pass the `--base-url` parameter to override the base URL.
 
 All commands require the following parameters:
 
-- `--action`: The action to perform (`create-release`, `create-deployment`)
+- `--action`: The action to perform (`create-release`, `create-deployment`, `upload-artifact`)
 - `--org-id`: Organization ID or slug
 - `--workspace-id`: Workspace ID or slug
-- `--project-id`: Project ID or slug
+- `--project-id`: Project ID or slug (not required for `upload-artifact`)
 - `--api-key`: Your Kraken API key (must start with `krk_`)
 
 ### Create Release
@@ -126,6 +126,29 @@ Parameters:
 
 **Note:** You must specify either `--release-id` or `--version`, but not both.
 
+### Upload Artifact
+
+Uploads an artifact file to the Kraken internal artifact feed.
+
+```bash
+dotnet run --project Kraken.Cli.csproj -- \
+  --action upload-artifact \
+  --org-id my-org \
+  --workspace-id my-workspace \
+  --api-key krk_your_api_key_here \
+  --name my-artifact \
+  --version 1.0.0 \
+  --file C:\path\to\artifact.zip
+```
+
+Parameters:
+
+- `--name`: Name of the artifact (required)
+- `--version`: Version of the artifact (required)
+- `--file`: Path to the file to upload (required)
+
+**Note:** The `--project-id` parameter is not required for artifact uploads.
+
 ## Examples
 
 ### Using a custom API URL
@@ -186,15 +209,9 @@ dotnet run --project Kraken.Cli.csproj -- \
 The CLI uses the following API endpoints (all require API key authentication):
 
 - `POST /organization/{organizationId}/workspaces/{workspaceId}/projects/{projectId}/releases/create` - Create release
--
-
-`POST /organization/{organizationId}/workspaces/{workspaceId}/projects/{projectId}/environments/{environmentId}/deployments/releases/{releaseId}/create` -
-Create deployment by release ID
-
--
-
-`POST /organization/{organizationId}/workspaces/{workspaceId}/projects/{projectId}/environments/{environmentId}/deployments/version/{version}/create` -
-Create deployment by release version
+- `POST /organization/{organizationId}/workspaces/{workspaceId}/projects/{projectId}/environments/{environmentId}/deployments/releases/{releaseId}/create` - Create deployment by release ID
+- `POST /organization/{organizationId}/workspaces/{workspaceId}/projects/{projectId}/environments/{environmentId}/deployments/version/{version}/create` - Create deployment by release version
+- `POST /organization/{organizationId}/workspaces/{workspaceId}/artifact/internal-feed` - Upload artifact
 
 ## Error Handling
 
