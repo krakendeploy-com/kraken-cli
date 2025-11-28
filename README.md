@@ -2,6 +2,36 @@
 
 Command-line interface for interacting with Kraken Deploy API to create releases and deployments.
 
+## GitHub Action Usage
+
+The easiest way to use Kraken CLI in GitHub Actions is with the action syntax:
+
+```yaml
+- name: Create Release
+  uses: krakendeploy-com/kraken-cli@v1
+  with:
+    action: create-release
+    org-id: ${{ secrets.KRAKEN_ORG_ID }}
+    workspace-id: ${{ secrets.KRAKEN_WORKSPACE_ID }}
+    project-id: ${{ secrets.KRAKEN_PROJECT_ID }}
+    api-key: ${{ secrets.KRAKEN_API_KEY }}
+    version: 1.0.${{ github.run_number }}
+    registry-images: kraken-api:1.0.${{ github.run_number }}:${{ secrets.KRAKEN_ARTIFACT_SOURCE }}
+
+- name: Create Deployment
+  uses: krakendeploy-com/kraken-cli@v1
+  with:
+    action: create-deployment
+    org-id: ${{ secrets.KRAKEN_ORG_ID }}
+    workspace-id: ${{ secrets.KRAKEN_WORKSPACE_ID }}
+    project-id: ${{ secrets.KRAKEN_PROJECT_ID }}
+    api-key: ${{ secrets.KRAKEN_API_KEY }}
+    environment-id: ${{ secrets.KRAKEN_ENVIRONMENT_ID }}
+    version: 1.0.${{ github.run_number }}
+```
+
+See [GitHub Action Inputs](#github-action-inputs) for all available options.
+
 ## Installation
 
 ### Download Pre-built Binaries
@@ -182,37 +212,110 @@ kraken-cli \
   --version "1.0.42"
 ```
 
-## GitHub Actions Integration
+## GitHub Action Inputs
 
-Use Kraken CLI in your GitHub Actions workflows:
+When using the Kraken CLI as a GitHub Action, the following inputs are available:
+
+### Common Inputs (All Actions)
+
+| Input | Required | Description |
+|-------|----------|-------------|
+| `action` | Yes | Action to perform: `create-release`, `create-deployment`, or `upload-artifact` |
+| `org-id` | Yes | Organization ID |
+| `workspace-id` | Yes | Workspace ID |
+| `api-key` | Yes | API key for authentication |
+| `base-url` | No | Base API URL (default: `https://api.krakendeploy.com`) |
+
+### Create Release Inputs
+
+| Input | Required | Description |
+|-------|----------|-------------|
+| `project-id` | Yes | Project ID |
+| `version` | Yes | Release version (e.g., `1.0.123`) |
+| `packages` | No* | Semicolon-separated list of packages in format `name:version:source-id` |
+| `registry-images` | No* | Semicolon-separated list of images in format `name:version:source-id` |
+
+*At least one of `packages` or `registry-images` must be provided.
+
+### Create Deployment Inputs
+
+| Input | Required | Description |
+|-------|----------|-------------|
+| `project-id` | Yes | Project ID |
+| `environment-id` | Yes | Target environment ID |
+| `release-id` | No* | Specific release ID to deploy |
+| `version` | No* | Release version to deploy |
+
+*Either `release-id` or `version` must be provided (but not both).
+
+### Upload Artifact Inputs
+
+| Input | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Artifact name |
+| `version` | Yes | Artifact version |
+| `file` | Yes | Path to the file to upload |
+
+### Complete GitHub Action Examples
+
+#### Example: Build, Release, and Deploy
 
 ```yaml
-- name: Download Kraken CLI
-  run: |
-    curl -L -o kraken-cli https://github.com/krakendeploy-com/kraken-cli/releases/latest/download/kraken-cli-linux-x64
-    chmod +x kraken-cli
+name: Build and Deploy
 
-- name: Create Release
-  run: |
-    ./kraken-cli \
-      --action create-release \
-      --org-id "${{ secrets.KRAKEN_ORG_ID }}" \
-      --workspace-id "${{ secrets.KRAKEN_WORKSPACE_ID }}" \
-      --project-id "${{ secrets.KRAKEN_PROJECT_ID }}" \
-      --api-key "${{ secrets.KRAKEN_API_KEY }}" \
-      --version "${{ steps.version.outputs.semver }}" \
-      --registry-images "my-app:${{ steps.version.outputs.semver }}:${{ secrets.KRAKEN_ARTIFACT_SOURCE }}"
+on:
+  push:
+    branches: [ master ]
 
-- name: Create Deployment
-  run: |
-    ./kraken-cli \
-      --action create-deployment \
-      --org-id "${{ secrets.KRAKEN_ORG_ID }}" \
-      --workspace-id "${{ secrets.KRAKEN_WORKSPACE_ID }}" \
-      --project-id "${{ secrets.KRAKEN_PROJECT_ID }}" \
-      --api-key "${{ secrets.KRAKEN_API_KEY }}" \
-      --environment-id "${{ secrets.KRAKEN_ENVIRONMENT_ID }}" \
-      --version "${{ steps.version.outputs.semver }}"
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set version
+        id: version
+        run: echo "semver=1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
+      
+      # Your build steps here...
+      
+      - name: Create Release
+        uses: krakendeploy-com/kraken-cli@v1
+        with:
+          action: create-release
+          org-id: ${{ secrets.KRAKEN_ORG_ID }}
+          workspace-id: ${{ secrets.KRAKEN_WORKSPACE_ID }}
+          project-id: ${{ secrets.KRAKEN_PROJECT_ID }}
+          api-key: ${{ secrets.KRAKEN_API_KEY }}
+          version: ${{ steps.version.outputs.semver }}
+          registry-images: my-app:${{ steps.version.outputs.semver }}:${{ secrets.KRAKEN_ARTIFACT_SOURCE }}
+      
+      - name: Deploy to Production
+        uses: krakendeploy-com/kraken-cli@v1
+        with:
+          action: create-deployment
+          org-id: ${{ secrets.KRAKEN_ORG_ID }}
+          workspace-id: ${{ secrets.KRAKEN_WORKSPACE_ID }}
+          project-id: ${{ secrets.KRAKEN_PROJECT_ID }}
+          api-key: ${{ secrets.KRAKEN_API_KEY }}
+          environment-id: ${{ secrets.KRAKEN_ENVIRONMENT_ID_PROD }}
+          version: ${{ steps.version.outputs.semver }}
+```
+
+#### Example: Multiple Packages
+
+```yaml
+- name: Create Release with Multiple Packages
+  uses: krakendeploy-com/kraken-cli@v1
+  with:
+    action: create-release
+    org-id: ${{ secrets.KRAKEN_ORG_ID }}
+    workspace-id: ${{ secrets.KRAKEN_WORKSPACE_ID }}
+    project-id: ${{ secrets.KRAKEN_PROJECT_ID }}
+    api-key: ${{ secrets.KRAKEN_API_KEY }}
+    version: ${{ steps.version.outputs.semver }}
+    packages: Package.A:1.0.0:nuget-source;Package.B:1.0.0:nuget-source
+    registry-images: api:1.0.0:docker-source;worker:1.0.0:docker-source
 ```
 
 ## Output Messages

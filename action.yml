@@ -1,0 +1,158 @@
+name: 'Kraken Deploy CLI'
+description: 'Execute Kraken Deploy commands to create releases and deployments'
+author: 'Kraken Deploy'
+
+branding:
+  icon: 'package'
+  color: 'blue'
+
+inputs:
+  action:
+    description: 'Action to perform (create-release, create-deployment, upload-artifact)'
+    required: true
+  org-id:
+    description: 'Organization ID'
+    required: true
+  workspace-id:
+    description: 'Workspace ID'
+    required: true
+  project-id:
+    description: 'Project ID (required for create-release and create-deployment)'
+    required: false
+  api-key:
+    description: 'API Key for authentication'
+    required: true
+  version:
+    description: 'Version number (required for create-release and create-deployment by version)'
+    required: false
+  release-id:
+    description: 'Release ID (alternative to version for create-deployment)'
+    required: false
+  environment-id:
+    description: 'Environment ID (required for create-deployment)'
+    required: false
+  packages:
+    description: 'Semicolon-separated list of packages in format: name:version:source-id'
+    required: false
+  registry-images:
+    description: 'Semicolon-separated list of registry images in format: name:version:source-id'
+    required: false
+  artifact-name:
+    description: 'Artifact name (required for upload-artifact)'
+    required: false
+  file:
+    description: 'File path (required for upload-artifact)'
+    required: false
+  base-url:
+    description: 'Base URL for Kraken API (default: https://api.krakendeploy.com)'
+    required: false
+    default: 'https://api.krakendeploy.com'
+
+outputs:
+  result:
+    description: 'Result of the CLI execution'
+    value: ${{ steps.run-cli.outputs.result }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Download Kraken CLI
+      shell: bash
+      run: |
+        echo "Downloading Kraken CLI..."
+        # Detect runner OS and architecture
+        if [[ "$RUNNER_OS" == "Linux" ]]; then
+          CLI_BINARY="kraken-cli-linux-x64"
+        elif [[ "$RUNNER_OS" == "Windows" ]]; then
+          CLI_BINARY="kraken-cli-win-x64.exe"
+        elif [[ "$RUNNER_OS" == "macOS" ]]; then
+          # Detect architecture
+          if [[ "$(uname -m)" == "arm64" ]]; then
+            CLI_BINARY="kraken-cli-osx-arm64"
+          else
+            CLI_BINARY="kraken-cli-osx-x64"
+          fi
+        else
+          echo "Unsupported OS: $RUNNER_OS"
+          exit 1
+        fi
+        
+        echo "Downloading ${CLI_BINARY}..."
+        curl -L -f -o kraken-cli "https://github.com/krakendeploy-com/kraken-cli/releases/latest/download/${CLI_BINARY}" || {
+          echo "Error: Failed to download Kraken CLI from:"
+          echo "https://github.com/krakendeploy-com/kraken-cli/releases/latest/download/${CLI_BINARY}"
+          exit 1
+        }
+        
+        # Make executable (not needed on Windows)
+        if [[ "$RUNNER_OS" != "Windows" ]]; then
+          chmod +x kraken-cli
+        fi
+        
+        # Verify it's a valid binary
+        file kraken-cli || true
+        
+        # Test it runs
+        ./kraken-cli --help || {
+          echo "Error: Downloaded file is not a valid executable"
+          exit 1
+        }
+        
+        echo "Kraken CLI downloaded successfully"
+
+    - name: Run Kraken CLI
+      id: run-cli
+      shell: bash
+      run: |
+        set -e
+        
+        # Build the command
+        CMD="./kraken-cli --action ${{ inputs.action }}"
+        
+        # Add required parameters
+        CMD="$CMD --org-id ${{ inputs.org-id }}"
+        CMD="$CMD --workspace-id ${{ inputs.workspace-id }}"
+        CMD="$CMD --api-key ${{ inputs.api-key }}"
+        
+        # Add optional parameters
+        if [[ -n "${{ inputs.project-id }}" ]]; then
+          CMD="$CMD --project-id ${{ inputs.project-id }}"
+        fi
+        
+        if [[ -n "${{ inputs.version }}" ]]; then
+          CMD="$CMD --version ${{ inputs.version }}"
+        fi
+        
+        if [[ -n "${{ inputs.release-id }}" ]]; then
+          CMD="$CMD --release-id ${{ inputs.release-id }}"
+        fi
+        
+        if [[ -n "${{ inputs.environment-id }}" ]]; then
+          CMD="$CMD --environment-id ${{ inputs.environment-id }}"
+        fi
+        
+        if [[ -n "${{ inputs.packages }}" ]]; then
+          CMD="$CMD --packages \"${{ inputs.packages }}\""
+        fi
+        
+        if [[ -n "${{ inputs.registry-images }}" ]]; then
+          CMD="$CMD --registry-images \"${{ inputs.registry-images }}\""
+        fi
+        
+        if [[ -n "${{ inputs.artifact-name }}" ]]; then
+          CMD="$CMD --name ${{ inputs.artifact-name }}"
+        fi
+        
+        if [[ -n "${{ inputs.file }}" ]]; then
+          CMD="$CMD --file ${{ inputs.file }}"
+        fi
+        
+        if [[ "${{ inputs.base-url }}" != "https://api.krakendeploy.com" ]]; then
+          CMD="$CMD --base-url ${{ inputs.base-url }}"
+        fi
+        
+        echo "Executing: $CMD"
+        eval $CMD
+        
+        echo "result=success" >> $GITHUB_OUTPUT
+
