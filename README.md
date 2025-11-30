@@ -8,7 +8,7 @@ The easiest way to use Kraken CLI in GitHub Actions is with the action syntax:
 
 ```yaml
 - name: Create Release
-  uses: krakendeploy-com/kraken-cli@v1
+  uses: krakendeploy-com/kraken-cli@v1.0.13
   with:
     action: create-release
     org-id: ${{ secrets.KRAKEN_ORG_ID }}
@@ -19,7 +19,7 @@ The easiest way to use Kraken CLI in GitHub Actions is with the action syntax:
     registry-images: kraken-api:1.0.${{ github.run_number }}:${{ secrets.KRAKEN_ARTIFACT_SOURCE }}
 
 - name: Create Deployment
-  uses: krakendeploy-com/kraken-cli@v1
+  uses: krakendeploy-com/kraken-cli@v1.0.13
   with:
     action: create-deployment
     org-id: ${{ secrets.KRAKEN_ORG_ID }}
